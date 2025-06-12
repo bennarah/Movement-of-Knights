@@ -1,6 +1,6 @@
 from collections import deque
 
-# All 8 possible knight moves
+# All 8 possible knight moves in chess
 KNIGHT_MOVES = [
     (-2, -1), (-2, 1),
     (-1, -2), (-1, 2),
@@ -8,58 +8,56 @@ KNIGHT_MOVES = [
     (2, -1), (2, 1)
 ]
 
+# Check if a position is valid on an 8x8 chessboard
 def is_valid(x, y):
-    return 0 <= x < 8 and 0 <= y < 8  # 8x8 chessboard
+    return 0 <= x < 8 and 0 <= y < 8
 
-def minimum_turns_to_capture(startA, startB):
+# Breadth-First Search to find the minimum number of moves to capture
+def find_min_turns_to_capture(startA, startB):
     queue = deque()
     visited = set()
 
-    # Each state: (posA, posB, turn_count, whose_turn, history)
-    queue.append((startA, startB, 1, 'A', []))  # Start from turn 1
-    visited.add((startA, startB, 'A'))
+    # Try both starting with Knight A and Knight B
+    queue.append((startA[0], startA[1], startB[0], startB[1], 0, 'A'))
+    queue.append((startA[0], startA[1], startB[0], startB[1], 0, 'B'))
 
     while queue:
-        posA, posB, turns, turn_owner, history = queue.popleft()
+        xA, yA, xB, yB, moves, turn = queue.popleft()
 
-        if turn_owner == 'A':
-            for dx, dy in KNIGHT_MOVES:
-                newA = (posA[0] + dx, posA[1] + dy)
-                if is_valid(*newA):
-                    # Capture check happens immediately after move
-                    if newA == posB:
-                        print(f"{turns} // knightA moves to {list(newA)}, knightA captures knightB on {list(newA)}")
-                        return turns
-                    state = (newA, posB, 'B')
-                    if state not in visited:
-                        visited.add(state)
-                        move_desc = f"knightA moves to {list(newA)}"
-                        queue.append((newA, posB, turns + 1, 'B', history + [move_desc]))
-        else:  # knightB's turn
-            for dx, dy in KNIGHT_MOVES:
-                newB = (posB[0] + dx, posB[1] + dy)
-                if is_valid(*newB):
-                    # Capture check
-                    if newB == posA:
-                        print(f"{turns} // knightB moves to {list(newB)}, knightB captures knightA on {list(newB)}")
-                        return turns
-                    state = (posA, newB, 'A')
-                    if state not in visited:
-                        visited.add(state)
-                        move_desc = f"knightB moves to {list(newB)}"
-                        queue.append((posA, newB, turns + 1, 'A', history + [move_desc]))
+        state = (xA, yA, xB, yB, turn)
+        if state in visited:
+            continue
+        visited.add(state)
 
+        if turn == 'A':
+            for dx, dy in KNIGHT_MOVES:
+                new_xA, new_yA = xA + dx, yA + dy
+                if is_valid(new_xA, new_yA):
+                    if new_xA == xB and new_yA == yB:
+                        return moves + 1, 'A', (new_xA, new_yA)
+                    queue.append((new_xA, new_yA, xB, yB, moves + 1, 'B'))
+        else:
+            for dx, dy in KNIGHT_MOVES:
+                new_xB, new_yB = xB + dx, yB + dy
+                if is_valid(new_xB, new_yB):
+                    if new_xB == xA and new_yB == yA:
+                        return moves + 1, 'B', (new_xB, new_yB)
+                    queue.append((xA, yA, new_xB, new_yB, moves + 1, 'A'))
+
+    return -1, '', (-1, -1)
+
+# Test input where Knight A captures Knight B in 1 move
+startA = (2, 1)  # Knight A
+startB = (4, 2)  # Knight B
+
+# Run the algorithm
+turns, capturer, position = find_min_turns_to_capture(startA, startB)
+victim = 'B' if capturer == 'A' else 'A'
+
+# Print the result
+if turns != -1:
+    print(f"{turns} // knight{capturer} moves to {list(position)}, knight{capturer} captures knight{victim} on {list(position)}")
+else:
     print("No capture possible.")
-    return -1
 
-# Input handler
-def get_position_input(label):
-    pos = input(f"Enter position for {label} in the form x,y: ")
-    x, y = map(int, pos.strip().split(","))
-    return (x, y)
 
-# Main program
-if __name__ == "__main__":
-    knightA = get_position_input("knightA")
-    knightB = get_position_input("knightB")
-    minimum_turns_to_capture(knightA, knightB)
